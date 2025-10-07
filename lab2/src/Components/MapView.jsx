@@ -7,13 +7,15 @@ import { useState } from 'react';
 
 
 // Component to handle map clicks
-function ClickHandler({ setMarkerPosition }) {
+function ClickHandler({ setMarkerPosition, setMarkerList }) {
   useMapEvents({
     click(e) {
       const confirm = window.confirm(`Do you want to place a marker at\nLat: ${e.latlng.lat.toFixed(4)}, Lng: ${e.latlng.lng.toFixed(4)}?`);
-      
+
       if (confirm) {
         setMarkerPosition(e.latlng);
+        // append to the marker list stored in state
+        setMarkerList(prev => [...prev, e.latlng]);
         console.log('Map clicked at:', e.latlng);
       } else {
         console.log('Marker placement canceled.');
@@ -21,6 +23,21 @@ function ClickHandler({ setMarkerPosition }) {
     },
   });
   return null;
+}
+
+function MarkerList({ markerList }) {
+  return (
+    <div className="marker-list">
+      <h3>Current markers:</h3>
+      <ul>
+        {markerList.map((marker, index) => (
+          <li key={index}>
+            Lat: {marker.lat.toFixed(5)}, Lng: {marker.lng.toFixed(5)}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -35,36 +52,49 @@ L.Icon.Default.mergeOptions({
 
 const MapView = () => {
     const [markerPosition, setMarkerPosition] = useState(null);
+    const [markerList, setMarkerList] = useState([]);
+    const [showList, setShowList] = useState(false);
 
   return (
-    <MapContainer center={[43.1939, -71.5724]} zoom={13} scrollWheelZoom={true} style={{ height: '40vw', width: '100%' }}>
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-      />
-      {/* <Marker position={[51.505, -0.09]}>
-        <Popup>
-          A pretty popup. <br /> Easily customizable.
-        </Popup>
-      </Marker> */}
+    <>
+        <MapContainer center={[43.1939, -71.5724]} zoom={13} scrollWheelZoom={true} style={{ height: '40vw', width: '100%' }}>
+        <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+        />
 
-      {/* Attach click handler */}
-      <ClickHandler setMarkerPosition={setMarkerPosition} />
+        {/* Attach click handler */}
+  <ClickHandler setMarkerPosition={setMarkerPosition} setMarkerList={setMarkerList} />
 
-      {/* Conditionally render marker */}
-      {markerPosition && (
-        <Marker position={markerPosition}>
-          <Popup>
-            <div>
-                {/* What goes inside the marker popup when clicked */}
-                <p className='marker-popup'>Do you want to place a marker here?</p>
-                Lat: {markerPosition.lat.toFixed(4)}, Lng: {markerPosition.lng.toFixed(4)}
-            </div>
-          </Popup>   
-        </Marker>
-      )}
+        {/* Conditionally render the single-click marker */}
+        {markerPosition && (
+            <Marker position={markerPosition}>
+            <Popup>
+                <div>
+                    {/* What goes inside the marker popup when clicked */}
+                    <p className='marker-popup'>Do you want to place a marker here?</p>
+                    Lat: {markerPosition.lat.toFixed(4)}, Lng: {markerPosition.lng.toFixed(4)}
+                </div>
+            </Popup>   
+            </Marker>
+        )}
 
-    </MapContainer>
+        {/* Also render all persisted markers from state */}
+        {markerList.map((pos, i) => (
+          <Marker key={i} position={pos}>
+            <Popup>
+              Lat: {pos.lat.toFixed(4)}, Lng: {pos.lng.toFixed(4)}
+            </Popup>
+          </Marker>
+        ))}
+
+        </MapContainer>
+
+        <button className='show-marker-list' onClick={() => setShowList(s => !s)}>{showList ? 'Hide' : 'Show'} Marker List</button>
+
+        {showList && <MarkerList markerList={markerList} />}
+
+    </>
   );
 };
 

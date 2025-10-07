@@ -14,3 +14,18 @@
     font-weight: bold;
     color: black;
 }
+
+.show-marker-list {
+    position: absolute;
+    width: 10vw;
+    top: 1vw;
+    right: 1vw;
+    z-index: 1000;
+    padding: 0.5vw 1vw;
+    font-size: 1.2vw;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 0.5vw;
+    cursor: pointer;
+}
