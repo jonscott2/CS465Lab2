@@ -10,8 +10,14 @@ import { useState } from 'react';
 function ClickHandler({ setMarkerPosition }) {
   useMapEvents({
     click(e) {
-      setMarkerPosition(e.latlng);
-      console.log('Map clicked at:', e.latlng); // For debugging
+      const confirm = window.confirm(`Do you want to place a marker at\nLat: ${e.latlng.lat.toFixed(4)}, Lng: ${e.latlng.lng.toFixed(4)}?`);
+      
+      if (confirm) {
+        setMarkerPosition(e.latlng);
+        console.log('Map clicked at:', e.latlng);
+      } else {
+        console.log('Marker placement canceled.');
+      }
     },
   });
   return null;
@@ -49,12 +55,15 @@ const MapView = () => {
       {markerPosition && (
         <Marker position={markerPosition}>
           <Popup>
-            You clicked here! <br />
-            Lat: {markerPosition.lat.toFixed(4)}, Lng: {markerPosition.lng.toFixed(4)}
-          </Popup>
+            <div>
+                {/* What goes inside the marker popup when clicked */}
+                <p className='marker-popup'>Do you want to place a marker here?</p>
+                Lat: {markerPosition.lat.toFixed(4)}, Lng: {markerPosition.lng.toFixed(4)}
+            </div>
+          </Popup>   
         </Marker>
       )}
-      
+
     </MapContainer>
   );
 };
