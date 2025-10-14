@@ -7,19 +7,11 @@ import { useState } from 'react';
 
 
 // Component to handle map clicks
-function ClickHandler({ setMarkerPosition, setMarkerList }) {
+function ClickHandler({ onMapClick }) {
   useMapEvents({
     click(e) {
-      const confirm = window.confirm(`Do you want to place a marker at\nLat: ${e.latlng.lat.toFixed(4)}, Lng: ${e.latlng.lng.toFixed(4)}?`);
-
-      if (confirm) {
-        setMarkerPosition(e.latlng);
-        // append to the marker list stored in state
-        setMarkerList(prev => [...prev, e.latlng]);
-        console.log('Map clicked at:', e.latlng);
-      } else {
-        console.log('Marker placement canceled.');
-      }
+      // delegate handling to parent so it can open a modal and collect info
+      onMapClick(e.latlng);
     },
   });
   return null;
@@ -40,6 +32,14 @@ function MarkerList({ markerList }) {
   );
 }
 
+function ClearMarkerList({ setMarkerList, className }) {
+  return (
+    <button className={className || 'clear-marker-list'} onClick={() => setMarkerList([])}>
+      Clear All Markers
+    </button>
+  );
+}
+
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
@@ -54,6 +54,28 @@ const MapView = () => {
     const [markerPosition, setMarkerPosition] = useState(null);
     const [markerList, setMarkerList] = useState([]);
     const [showList, setShowList] = useState(false);
+    // pending marker info shown in modal before confirmation
+    const [pending, setPending] = useState(null); // { latlng, title, description }
+
+    function handleMapClick(latlng) {
+      // open modal to collect title/description
+      setPending({ latlng, title: '', description: '' });
+    }
+
+    function confirmPending() {
+      if (!pending) return;
+      const pos = pending.latlng;
+      const markerData = { ...pos, title: pending.title, description: pending.description };
+      setMarkerPosition(pos);
+      setMarkerList(prev => [...prev, markerData]);
+      console.log('Marker confirmed at:', pos, markerData);
+      setPending(null);
+    }
+
+    function cancelPending() {
+      console.log('Marker placement canceled.');
+      setPending(null);
+    }
 
   return (
     <>
@@ -63,27 +85,31 @@ const MapView = () => {
             attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
         />
 
-        {/* Attach click handler */}
-  <ClickHandler setMarkerPosition={setMarkerPosition} setMarkerList={setMarkerList} />
+    {/* Attach click handler */}
+  <ClickHandler onMapClick={handleMapClick} />
 
-        {/* Conditionally render the single-click marker */}
-        {markerPosition && (
-            <Marker position={markerPosition}>
-            <Popup>
-                <div>
-                    {/* What goes inside the marker popup when clicked */}
-                    <p className='marker-popup'>Do you want to place a marker here?</p>
-                    Lat: {markerPosition.lat.toFixed(4)}, Lng: {markerPosition.lng.toFixed(4)}
-                </div>
-            </Popup>   
-            </Marker>
-        )}
+    {/* Conditionally render the single-click marker */}
+    {markerPosition && (
+      <Marker position={markerPosition}>
+      <Popup>
+        <div>
+          {/* What goes inside the marker popup when clicked */}
+          <p className='marker-popup'>Latest marker</p>
+          Lat: {markerPosition.lat.toFixed(4)}, Lng: {markerPosition.lng.toFixed(4)}
+        </div>
+      </Popup>   
+      </Marker>
+    )}
 
         {/* Also render all persisted markers from state */}
         {markerList.map((pos, i) => (
           <Marker key={i} position={pos}>
             <Popup>
-              Lat: {pos.lat.toFixed(4)}, Lng: {pos.lng.toFixed(4)}
+              <div>
+                <strong>{pos.title}</strong>
+                <div>Lat: {pos.lat.toFixed(4)}, Lng: {pos.lng.toFixed(4)}</div>
+                {pos.description && <div>{pos.description}</div>}
+              </div>
             </Popup>
           </Marker>
         ))}
@@ -91,8 +117,31 @@ const MapView = () => {
         </MapContainer>
 
         <button className='show-marker-list' onClick={() => setShowList(s => !s)}>{showList ? 'Hide' : 'Show'} Marker List</button>
+        <button className='clear-marker-list' onClick={() => { setMarkerList([]); setMarkerPosition(null); }}>Clear All Markers</button>
 
         {showList && <MarkerList markerList={markerList} />}
+
+        {/* Modal to collect marker info before confirming */}
+        {pending && (
+          <div className="marker-modal-backdrop">
+            <div className="marker-modal">
+              <h3>Add marker</h3>
+              <div>Lat: {pending.latlng.lat.toFixed(5)}, Lng: {pending.latlng.lng.toFixed(5)}</div>
+              <label>
+                Title:
+                <input value={pending.title} onChange={e => setPending(p => ({ ...p, title: e.target.value }))} />
+              </label>
+              <label>
+                Description:
+                <textarea value={pending.description} onChange={e => setPending(p => ({ ...p, description: e.target.value }))} />
+              </label>
+              <div className="modal-actions">
+                <button onClick={confirmPending}>Confirm</button>
+                <button onClick={cancelPending}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
 
     </>
   );
