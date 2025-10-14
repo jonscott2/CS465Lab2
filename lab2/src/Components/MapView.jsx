@@ -25,18 +25,11 @@ function MarkerList({ markerList }) {
         {markerList.map((marker, index) => (
           <li key={index}>
             Lat: {marker.lat.toFixed(5)}, Lng: {marker.lng.toFixed(5)}
+            {marker.title && <strong> - {marker.title}</strong>}
           </li>
         ))}
       </ul>
     </div>
-  );
-}
-
-function ClearMarkerList({ setMarkerList, className }) {
-  return (
-    <button className={className || 'clear-marker-list'} onClick={() => setMarkerList([])}>
-      Clear All Markers
-    </button>
   );
 }
 
